@@ -150,7 +150,7 @@ trtexec \
 --maxShapes=input:8x1x128x128
 ```
 
-.engine 文件已经上传见组内资源导航,文件放在jetson_infer/model/
+_**.engine 文件已经上传见组内资源导航,文件放在jetson_infer/model/**_
 
 ---
 
