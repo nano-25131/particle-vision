@@ -21,16 +21,6 @@ Industrial Camera · TensorRT · CUDA · WebSocket · ImGui
 
 ---
 
-## 🎬 Demo
-
-<div align="center">
-
-<img src="docs/demo.gif" width="95%">
-
-</div>
-
----
-
 ## ✨ Highlights
 
 |  🚀 Performance  |      ⚡ Pipeline     |    🎯 AI Inference   |
