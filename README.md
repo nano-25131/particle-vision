@@ -1,86 +1,171 @@
-# Particle — 颗粒目标实时检测与分割系统
+<div align="center">
 
-实时粒子推理系统：Blackfly 工业相机采集 → Jetson Orin 推理（YOLO + UNet）→ PC 上位机可视化。
+# 🔬 Particle Vision
 
-## 架构
+### Real-Time Particle Detection & Segmentation System
 
+Industrial Camera · TensorRT · CUDA · WebSocket · ImGui
+
+
+![Jetson](https://img.shields.io/badge/Jetson-Orin-76B900?style=for-the-badge\&logo=nvidia)
+![CUDA](https://img.shields.io/badge/CUDA-11.x-76B900?style=for-the-badge\&logo=nvidia)
+![TensorRT](https://img.shields.io/badge/TensorRT-8.x-76B900?style=for-the-badge)
+![C++](https://img.shields.io/badge/C%2B%2B-17-00599C?style=for-the-badge\&logo=cplusplus)
+![OpenCV](https://img.shields.io/badge/OpenCV-4.x-5C3EE8?style=for-the-badge\&logo=opencv)
+
+<br>
+
+**Industrial Camera → Shared Memory → TensorRT Inference → Real-Time Dashboard**
+
+</div>
+
+---
+
+## 🎬 Demo
+
+<div align="center">
+
+<img src="docs/demo.gif" width="95%">
+
+</div>
+
+---
+
+## ✨ Highlights
+
+|  🚀 Performance  |      ⚡ Pipeline     |    🎯 AI Inference   |
+| :--------------: | :-----------------: | :------------------: |
+|   TensorRT FP16  |    Shared Memory    |    YOLO Detection    |
+| Dual CUDA Stream |      Zero Copy      |   UNet Segmentation  |
+|   Dynamic Batch  | WebSocket Streaming | Real-Time Processing |
+
+| 📡 Visualization | 🔧 Industrial Integration | 🖥 User Interface |
+| :--------------: | :-----------------------: | :---------------: |
+|  ImGui Dashboard |      Blackfly Camera      |  OpenGL Rendering |
+|   ImPlot Charts  |       Spinnaker SDK       |  Live Monitoring  |
+
+---
+
+## 🏗 Architecture
+
+```mermaid
+flowchart LR
+
+CAM["📷 Blackfly Camera"]
+SHM["📦 Shared Memory"]
+
+YOLO["🎯 YOLO TensorRT"]
+UNET["🧠 UNet TensorRT"]
+
+ENC["🖼 JPEG Encoder"]
+WS["📡 WebSocket"]
+
+GUI["🖥 ImGui Dashboard"]
+
+CAM --> SHM
+
+SHM --> YOLO
+
+YOLO --> UNET
+
+UNET --> ENC
+
+ENC --> WS
+
+WS --> GUI
 ```
-┌──────────────────────┐    共享内存     ┌──────────────────────┐    WebSocket    ┌──────────────────────┐
-│  Blackfly USB3 相机   │ ────────────→  │  Jetson Orin (推理端)  │ ────────────→  │   PC 上位机 (显示端)   │
-│  jetson_capture/      │  /spinnaker_img │  jetson_infer/        │  binary frames │  pc_viewer/           │
-│                       │                 │  YOLO检测 + UNet分割   │  :8080         │  ImGui + ImPlot       │
-└──────────────────────┘                 └──────────────────────┘                 └──────────────────────┘
-```
 
-## 子项目
+---
 
-| 目录 | 功能 | 平台 | 关键依赖 |
-|---|---|---|---|
-| `jetson_capture/` | 相机采集，写入共享内存 | Linux (Jetson) | Spinnaker SDK, OpenCV |
-| `jetson_infer/` | YOLO + UNet 推理，WebSocket 推送 | Linux (Jetson Orin) | TensorRT, CUDA, OpenCV |
-| `pc_viewer/` | 上位机仪表盘，实时可视化 | Linux (PC) | GLFW, ImGui, ImPlot, OpenCV |
+## 🛠 Dependencies
 
-## 快速开始
+### 📷 jetson_capture
 
-### 1. 相机采集端
+* Spinnaker SDK
+* OpenCV 4.x
+
+### 🧠 jetson_infer
+
+* CUDA 11.x
+* TensorRT 8.x
+* OpenCV 4.x
+
+### 🖥 pc_viewer
+
+* GLFW 3.x
+* OpenGL3
+* OpenCV 4.x
+* ImGui
+* ImPlot
+
+---
+
+## 🚀 Build
+
+### Camera Capture
 
 ```bash
 cd jetson_capture
-# 安装 Spinnaker SDK 后
-cmake -B build && cmake --build build
+
+cmake -B build
+cmake --build build
+
 sudo ./build/bin/SpinnakerAcquisition
 ```
 
-### 2. Jetson 推理端
+### Inference Server
 
 ```bash
 cd jetson_infer
-# 准备模型：将 ONNX 导出为 TensorRT engine，放入 model/
-#   model/yolo_new_fp16.engine
-#   model/unet.engine
-cmake -B build && cmake --build build
+
+cmake -B build
+cmake --build build
+
 ./build/particle_demo
 ```
 
-### 3. PC 上位机
+### PC Viewer
 
 ```bash
 cd pc_viewer
-cmake -B build && cmake --build build
+
+cmake -B build
+cmake --build build
+
 ./build/viewer <jetson-ip>
-# 例如: ./build/viewer 192.168.1.100
 ```
 
-也可用 Python 脚本快速查看：
+---
+
+## 🧠 TensorRT Engine Generation
+
+### YOLO
 
 ```bash
-python3 jetson_infer/scripts/viewer.py <jetson-ip>
+trtexec \
+--onnx=yolo.onnx \
+--saveEngine=jetson_infer/model/yolo_fp16.engine \
+--fp16
 ```
 
-## 数据流
-
-```
-相机 640×640 Mono8
-  → 共享内存 (/spinnaker_img, 双缓冲)
-  → ShmReader 零拷贝读取
-  → YOLO 检测 (TensorRT, GPU)
-  → UNet 分割 (TensorRT, 动态 Batch, GPU)
-  → JPEG 编码 + JSON 元数据
-  → WebSocket Binary Frame 广播 :8080
-  → pc_viewer ImGui 仪表盘实时渲染
-```
-
-## 模型准备
-
-1. 将训练好的 YOLO 模型导出为 ONNX
-2. 将训练好的 UNet 模型导出为动态 batch ONNX（batch 维度设为 -1）
-3. 使用 `trtexec` 在 Jetson Orin 上转换为 TensorRT engine：
+### UNet
 
 ```bash
-# YOLO (固定 batch=1)
-trtexec --onnx=yolo.onnx --saveEngine=model/yolo_new_fp16.engine --fp16
-
-# UNet (动态 batch, 推荐 max=8)
-trtexec --onnx=unet.onnx --saveEngine=model/unet.engine --fp16 \
-        --minShapes=input:1x1x128x128 --optShapes=input:4x1x128x128 --maxShapes=input:8x1x128x128
+trtexec \
+--onnx=unet.onnx \
+--saveEngine=jetson_infer/model/unet.engine \
+--fp16 \
+--minShapes=input:1x1x128x128 \
+--optShapes=input:4x1x128x128 \
+--maxShapes=input:8x1x128x128
 ```
+
+---
+
+<div align="center">
+
+###  ❤️ 
+
+TensorRT · CUDA · OpenCV · WebSocket · ImGui
+
+</div>
